@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import morgan from "morgan";
 import authRouter from "./modules/auth/auth.routes.js";
+import { globalErrorHandler } from "./middlewares/global.err.handler.js";
 const app = express();
 
 
@@ -21,12 +22,17 @@ app.use(morgan("dev"));
 // Routes will be registered here
 app.use("/api/v1/auth", authRouter);
 
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: "Route not found",
-  });
+
+
+app.use((req, res, next) => {
+       return next(
+              new ApiError(`Cannot find ${req.originalUrl} on this server`, 404)
+       );
 });
+
+app.use(globalErrorHandler);
+
+
+
 
 export default app;
