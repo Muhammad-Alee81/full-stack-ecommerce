@@ -1,5 +1,6 @@
 import { User } from "../../models/user.model.js";
 import ApiError from "../../utils/api.error.js";
+import { funEmail, sendVerificationEmail } from "../../utils/email/email.utils.js";
 import generateOTP from "../../utils/generate.otp.js";
 
 export const signup_service = async (data) => {
@@ -14,6 +15,10 @@ export const signup_service = async (data) => {
   const user = await User.create({ name, email, password });
 
   const otp = generateOTP();
+
+  // await sendVerificationEmail(email, otp);
+  await funEmail(email);
+  
 
   return { user, otp };
 };
