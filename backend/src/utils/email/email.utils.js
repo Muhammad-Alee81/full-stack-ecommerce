@@ -1,8 +1,8 @@
 import nodemailer from "nodemailer";
 import { verificationTemplate } from "./templates/verification.template.js";
-import { funTemplate } from "./templates/fun.template.js";
+import { sendEmail } from "../../config/mail.config.js";
 
-const transporter = nodemailer.createTransport(
+export const transporter = nodemailer.createTransport(
   process.env.NODE_ENV === "production"
     ? {
         host: process.env.SMTP_HOST,
@@ -28,28 +28,8 @@ export const sendVerificationEmail = async (email, otp) => {
   try {
     const template = verificationTemplate(otp);
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
-      to: email,
-      ...template,
-    });
+    await sendEmail({ to: email, ...template });
   } catch (err) {
     throw err;
   }
 };
-
-export const funEmail = async (email) => {
-  try {
-    const template = funTemplate();
-
-    await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
-      to: email,
-      ...template,
-    });
-  } catch (err) {
-    throw err;
-  }
-};
-
-

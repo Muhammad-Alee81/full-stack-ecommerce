@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import morgan from "morgan";
 import authRouter from "./modules/auth/auth.routes.js";
 import { globalErrorHandler } from "./middlewares/global.err.handler.js";
+import ApiError from "./utils/api.error.js";
 const app = express();
 
 
