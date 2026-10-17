@@ -1,4 +1,5 @@
 import ApiError from "../../utils/api.error.js";
+import { catchAsync } from "../../utils/catch_async.utils.js";
 import { setAuthCookies } from "../../utils/cookie.utils.js";
 import { verifyRefreshToken } from "../../utils/tokens.utils.js";
 import {
@@ -7,7 +8,7 @@ import {
   signup_service,
 } from "./auth.services.js";
 
-export const signup = async (req, res, next) => {
+export const signup = catchAsync(async (req, res, next) => {
   const { email } = await signup_service(req.body);
 
   return res.status(200).json({
@@ -15,9 +16,9 @@ export const signup = async (req, res, next) => {
     message: "Verification OTP sent to your email",
     email,
   });
-};
+});
 
-export const verifyEmail = async (req, res, next) => {
+export const verifyEmail = catchAsync(async (req, res, next) => {
   const { accessToken, message, refreshToken } =
     await email_verification_service(req.body);
 
@@ -28,9 +29,9 @@ export const verifyEmail = async (req, res, next) => {
     message,
     accessToken,
   });
-};
+});
 
-export const refreshToken = async (req, res, next) => {
+export const refreshToken = catchAsync(async (req, res, next) => {
   const incomingRefreshToken = req.cookies["refreshToken"];
 
   const { accessToken, refreshToken } =
@@ -39,4 +40,4 @@ export const refreshToken = async (req, res, next) => {
   setAuthCookies(res, accessToken, refreshToken);
 
   return res.status(201).json({ status: "success", accessToken });
-};
+});
