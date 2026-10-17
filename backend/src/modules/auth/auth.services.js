@@ -3,6 +3,11 @@ import { User } from "../../models/user.model.js";
 import ApiError from "../../utils/api.error.js";
 import { sendVerificationEmail } from "../../utils/email/email.utils.js";
 import generateOTP from "../../utils/generate.otp.js";
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  hashToken,
+} from "../../utils/tokens.utils.js";
 
 export const signup_service = async (data) => {
   const { name, email, password } = data;
@@ -21,7 +26,7 @@ export const signup_service = async (data) => {
 
   await sendVerificationEmail(email, otp);
 
-  return { user, otp };
+  return { email: user.email };
 };
 
 export const email_verification_service = async (data) => {
@@ -47,12 +52,19 @@ export const email_verification_service = async (data) => {
     throw new ApiError("Email already verified", 400);
   }
 
+  const accessToken = generateAccessToken(user);
+  const refreshToken = generateRefreshToken(user);
+
+  const hashedRefreshToken = hashToken(refreshToken);
+
+  user.refreshToken = hashedRefreshToken;
   user.isVerified = true;
   await user.save();
-
   await redis.del(`otp:${email}`);
 
   return {
     message: "Email verified successfully",
+    accessToken,
+    refreshToken,
   };
 };
