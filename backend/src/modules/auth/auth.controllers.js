@@ -1,6 +1,11 @@
 import ApiError from "../../utils/api.error.js";
 import { setAuthCookies } from "../../utils/cookie.utils.js";
-import { email_verification_service, signup_service } from "./auth.services.js";
+import { verifyRefreshToken } from "../../utils/tokens.utils.js";
+import {
+  email_verification_service,
+  refresh_token_service,
+  signup_service,
+} from "./auth.services.js";
 
 export const signup = async (req, res, next) => {
   const { email } = await signup_service(req.body);
@@ -23,4 +28,15 @@ export const verifyEmail = async (req, res, next) => {
     message,
     accessToken,
   });
+};
+
+export const refreshToken = async (req, res, next) => {
+  const incomingRefreshToken = req.cookies["refreshToken"];
+
+  const { accessToken, refreshToken } =
+    await refresh_token_service(incomingRefreshToken);
+
+  setAuthCookies(res, accessToken, refreshToken);
+
+  return res.status(201).json({ status: "success", accessToken });
 };

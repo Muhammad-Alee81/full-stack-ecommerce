@@ -7,6 +7,7 @@ import {
   generateAccessToken,
   generateRefreshToken,
   hashToken,
+  verifyRefreshToken,
 } from "../../utils/tokens.utils.js";
 
 export const signup_service = async (data) => {
@@ -64,6 +65,26 @@ export const email_verification_service = async (data) => {
 
   return {
     message: "Email verified successfully",
+    accessToken,
+    refreshToken,
+  };
+};
+
+export const refresh_token_service = async (token) => {
+  const { user, hashRefreshToken } = await verifyRefreshToken(token);
+
+  if (user.refreshToken !== hashRefreshToken) {
+    return next(new ApiError("Invalid or expired refresh token", 401));
+  }
+
+  const accessToken = generateAccessToken(user);
+  const refreshToken = generateRefreshToken(user);
+
+  const hashedRefreshToken = hashToken(refreshToken);
+  user.refreshToken = hashedRefreshToken;
+  await user.save();
+
+  return {
     accessToken,
     refreshToken,
   };

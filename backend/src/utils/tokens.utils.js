@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { createHash } from "node:crypto";
+import { User } from "../models/user.model.js";
 
 export const generateAccessToken = (user) => {
   return jwt.sign(
@@ -29,4 +30,14 @@ export const generateRefreshToken = (user) => {
 
 export const hashToken = (token) => {
   return createHash("sha256").update(token).digest("hex");
+};
+
+export const verifyRefreshToken = async (token) => {
+  const decode = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+
+  const user = await User.findById(decode.id);
+
+  const hashRefreshToken = createHash("sha256").update(token).digest("hex");
+
+  return { user, hashRefreshToken };
 };
