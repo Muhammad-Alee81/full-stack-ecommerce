@@ -23,7 +23,7 @@ export const signup_service = async (data) => {
 
   const otp = generateOTP();
 
-  await redis.set(`otp:${email}`, otp, "EX", 300);
+  await redis.set(`otp:${email}`, otp, "EX", 300, "NX");
 
   await sendVerificationEmail(email, otp);
 
@@ -87,5 +87,37 @@ export const refresh_token_service = async (token) => {
   return {
     accessToken,
     refreshToken,
+  };
+};
+
+export const resend_otp_service = async (email) => {
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    throw new ApiError("User not found with this email address", 404);
+  }
+
+  if (user.isVerified) {
+    throw new ApiError("user already verified", 400);
+  }
+
+  const key = await redis.get(`otp:${email}`);
+
+  if (key) {
+    throw new ApiError("Plz wait until the countdown resets", 400);
+  }
+
+  const otp = generateOTP();
+
+  const result = await redis.set(`otp:${email}`, otp, "EX", 300, "NX");
+
+  if (result !== "OK") {
+    throw new ApiError("Please wait until the countdown resets", 400);
+  }
+
+  await sendVerificationEmail(email, otp);
+
+  return {
+    message: "Otp sent to your Email address",
   };
 };

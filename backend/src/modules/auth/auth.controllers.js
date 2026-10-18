@@ -5,6 +5,7 @@ import { verifyRefreshToken } from "../../utils/tokens.utils.js";
 import {
   email_verification_service,
   refresh_token_service,
+  resend_otp_service,
   signup_service,
 } from "./auth.services.js";
 
@@ -40,4 +41,11 @@ export const refreshToken = catchAsync(async (req, res, next) => {
   setAuthCookies(res, accessToken, refreshToken);
 
   return res.status(201).json({ status: "success", accessToken });
+});
+
+export const resendOTP = catchAsync(async (req, res, next) => {
+  const { email } = req.body;
+  const { message } = await resend_otp_service(email);
+
+  return res.status(201).json({ status: "success", message });
 });

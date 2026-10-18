@@ -279,3 +279,8 @@ Error          Generate new Access Token
                                             ↓
                                       Login Again
 
+
+08) RESEND OTP 
+  sab sy pehly user email dy ga 
+  hum us email k basis pr redis ma check krain gay k otp h ya nhi 
+  agr otp h tou 2 options hain ya tou otp koo del kr k new otp email pr send karain or new otp koo save kr lain ya tou error dain 
