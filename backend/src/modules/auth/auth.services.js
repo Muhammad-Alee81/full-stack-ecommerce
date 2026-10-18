@@ -121,3 +121,35 @@ export const resend_otp_service = async (email) => {
     message: "Otp sent to your Email address",
   };
 };
+
+export const login_service = async ({ email, password }) => {
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    throw new ApiError("Invalid email or password", 400);
+  }
+
+  const isPasswordCorrect = await user.comparePassword(password);
+
+  if (!isPasswordCorrect) {
+    throw new ApiError("Invalid email or password", 401);
+  }
+
+  const accessToken = generateAccessToken(user);
+  const refreshToken = generateRefreshToken(user);
+
+  const hashedRefreshToken = hashToken(refreshToken);
+
+  user.refreshToken = hashedRefreshToken;
+  await user.save();
+
+  return {
+    accessToken,
+    refreshToken,
+    message: "LoggedIn successfully",
+    data: {
+      name: user.name,
+      email: user.email,
+    },
+  };
+};

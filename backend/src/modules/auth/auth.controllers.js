@@ -4,6 +4,7 @@ import { setAuthCookies } from "../../utils/cookie.utils.js";
 import { verifyRefreshToken } from "../../utils/tokens.utils.js";
 import {
   email_verification_service,
+  login_service,
   refresh_token_service,
   resend_otp_service,
   signup_service,
@@ -48,4 +49,14 @@ export const resendOTP = catchAsync(async (req, res, next) => {
   const { message } = await resend_otp_service(email);
 
   return res.status(201).json({ status: "success", message });
+});
+
+export const login = catchAsync(async (req, res, next) => {
+  const { accessToken, refreshToken, message, data } = await login_service(
+    req.body,
+  );
+
+  setAuthCookies(res, accessToken, refreshToken);
+
+  return res.status(200).json({ status: "success", message, data });
 });

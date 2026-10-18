@@ -42,4 +42,9 @@ userSchema.pre("save", async function () {
   this.password = hashPassword;
 });
 
+// COMPARE HASH PASSWORD
+userSchema.methods.comparePassword = async function (password) {
+  return await bcrypt.compare(password, this.password);
+};
+
 export const User = model("User", userSchema);

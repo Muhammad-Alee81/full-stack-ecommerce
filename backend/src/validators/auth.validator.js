@@ -1,16 +1,18 @@
-  
 import { z } from "zod";
 
 export const userSchemaValidator = z.object({
-  name: z.string()
+  name: z
+    .string()
     .trim()
     .min(2, "Name must be at least 2 characters")
     .max(50, "Name cannot exceed 50 characters"),
 
-  email: z.string()
-    .trim()
-    .email("Please enter a valid email"),
+  email: z.string().trim().email("Please enter a valid email"),
 
-  password: z.string()
-    .min(8, "Password must be at least 8 characters"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
+export const loginValidator = userSchemaValidator.pick({
+  email: true,
+  password: true,
 });
