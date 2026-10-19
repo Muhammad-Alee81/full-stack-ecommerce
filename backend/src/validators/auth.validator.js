@@ -16,3 +16,7 @@ export const loginValidator = userSchemaValidator.pick({
   email: true,
   password: true,
 });
+
+export const forgotPasswordValidator = userSchemaValidator.pick({
+  email: true,
+});

@@ -4,6 +4,7 @@ import { setAuthCookies } from "../../utils/cookie.utils.js";
 import { verifyRefreshToken } from "../../utils/tokens.utils.js";
 import {
   email_verification_service,
+  forgot_password_service,
   login_service,
   refresh_token_service,
   resend_otp_service,
@@ -11,7 +12,7 @@ import {
 } from "./auth.services.js";
 
 export const signup = catchAsync(async (req, res, next) => {
-  const { email } = await signup_service(req.body);
+  const { email } = await signup_service(req.body, "email_verification");
 
   return res.status(200).json({
     status: "success",
@@ -22,7 +23,7 @@ export const signup = catchAsync(async (req, res, next) => {
 
 export const verifyEmail = catchAsync(async (req, res, next) => {
   const { accessToken, message, refreshToken } =
-    await email_verification_service(req.body);
+    await email_verification_service(req.body, "email_verification");
 
   setAuthCookies(res, accessToken, refreshToken);
 
@@ -46,7 +47,7 @@ export const refreshToken = catchAsync(async (req, res, next) => {
 
 export const resendOTP = catchAsync(async (req, res, next) => {
   const { email } = req.body;
-  const { message } = await resend_otp_service(email);
+  const { message } = await resend_otp_service(email, "email_verification");
 
   return res.status(201).json({ status: "success", message });
 });
@@ -59,4 +60,15 @@ export const login = catchAsync(async (req, res, next) => {
   setAuthCookies(res, accessToken, refreshToken);
 
   return res.status(200).json({ status: "success", message, data });
+});
+
+export const forgotPassword = catchAsync(async (req, res, next) => {
+  const { email } = await forgot_password_service(req.body, "forgot_password");
+
+  return res
+    .status(200)
+    .json(
+      { status: "success", message: "OTP sent to your email address" },
+      email,
+    );
 });

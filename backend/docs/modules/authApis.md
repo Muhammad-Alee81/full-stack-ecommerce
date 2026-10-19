@@ -284,3 +284,13 @@ Error          Generate new Access Token
   sab sy pehly user email dy ga 
   hum us email k basis pr redis ma check krain gay k otp h ya nhi 
   agr otp h tou 2 options hain ya tou otp koo del kr k new otp email pr send karain or new otp koo save kr lain ya tou error dain 
+
+
+
+
+
+
+
+  POST /api/auth/resend-verification-otp
+POST /api/auth/forgot-password
+POST /api/auth/resend-password-reset-otp

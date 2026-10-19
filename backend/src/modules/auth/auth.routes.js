@@ -8,9 +8,11 @@ import {
 } from "./auth.controllers.js";
 import validate from "../../middlewares/validate.middleware.js";
 import {
+  forgotPasswordValidator,
   loginValidator,
   userSchemaValidator,
 } from "../../validators/auth.validator.js";
+import { forgotPassword } from "./auth.controllers.js";
 
 const router = express.Router();
 
@@ -20,5 +22,10 @@ router.post("/resend-otp", resendOTP);
 
 router.post("/signup", validate(userSchemaValidator), signup);
 router.post("/login", validate(loginValidator), login);
+router.post(
+  "/forgot-password",
+  validate(forgotPasswordValidator),
+  forgotPassword,
+);
 
 export default router;
