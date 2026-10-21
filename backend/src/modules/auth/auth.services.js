@@ -11,7 +11,7 @@ import {
   verifyRefreshToken,
 } from "../../utils/tokens.utils.js";
 
-export const signup_service = async (data, purpose) => {
+export const signup_service = async (data) => {
   const { name, email, password } = data;
 
   const checkUser = await User.findOne({ email });
@@ -23,12 +23,13 @@ export const signup_service = async (data, purpose) => {
   const user = await User.create({ name, email, password });
 
   const otp = generateOTP();
+  const otpTTL = 300;
 
   const result = await redis.set(
-    `${purpose}_otp:${email}`,
+    `email_verification_otp:${email}`,
     otp,
     "EX",
-    300,
+    otpTTL,
     "NX",
   );
 
@@ -41,7 +42,7 @@ export const signup_service = async (data, purpose) => {
   try {
     await sendVerificationEmail(email, otp);
   } catch (err) {
-    await redis.del(`${purpose}_otp:${email}`);
+    await redis.del(`email_verification_otp:${email}`);
 
     throw new ApiError(
       "Unable to send verification email. Please try again.",
@@ -49,13 +50,17 @@ export const signup_service = async (data, purpose) => {
     );
   }
 
-  return { email: user.email };
+  return {
+    email: user.email,
+    expiresIn: otpTTL,
+    message: "Verification OTP sent tou your email",
+  };
 };
 
-export const email_verification_service = async (data, purpose) => {
+export const email_verification_service = async (data) => {
   const { otp, email } = data;
 
-  const savedOTP = await redis.get(`${purpose}_otp:${email}`);
+  const savedOTP = await redis.get(`email_verification_otp:${email}`);
 
   if (!savedOTP) {
     throw new ApiError("OTP expired or not found", 400);
@@ -83,7 +88,7 @@ export const email_verification_service = async (data, purpose) => {
   user.refreshToken = hashedRefreshToken;
   user.isVerified = true;
   await user.save();
-  await redis.del(`${purpose}_otp:${email}`);
+  await redis.del(`email_verification_otp:${email}`);
 
   return {
     message: "Email verified successfully",
@@ -112,43 +117,29 @@ export const refresh_token_service = async (token) => {
   };
 };
 
-export const resend_otp_service = async (email, purpose) => {
-  
-
-  if (!allowedPurposes.includes(purpose)) {
-    throw new ApiError("Invalid OTP purpose", 400);
-  }
-
+export const resend_email_verification_otp_service = async ({ email }) => {
   const user = await User.findOne({ email });
 
   if (!user) {
-    if (purpose === "forgot_password") {
-      return {
-        message: "If an account exist an OTP will be sent tou your email",
-      };
-    }
-
-    throw new ApiError("User not found with this email address", 404);
+    return {
+      message: "If the account exist the otp will be sent to your email",
+    };
   }
 
-  if (purpose === "email_verification" && user.isVerified) {
-    throw new ApiError("User already verified", 400);
-  }
-
-
-  const key = await redis.get(`${purpose}_otp:${email}`);
+  const key = await redis.get(`email_verification_otp:${email}`);
 
   if (key) {
     throw new ApiError("Plz wait until the countdown resets", 400);
   }
 
   const otp = generateOTP();
+  const otpTTL = 300;
 
   const result = await redis.set(
-    `${purpose}_otp:${email}`,
+    `email_verification_otp:${email}`,
     otp,
     "EX",
-    300,
+    otpTTL,
     "NX",
   );
 
@@ -159,7 +150,7 @@ export const resend_otp_service = async (email, purpose) => {
   try {
     await sendVerificationEmail(email, otp);
   } catch (err) {
-    await redis.del(`${purpose}_otp:${email}`);
+    await redis.del(`email_verification_otp:${email}`);
 
     throw new ApiError(
       "Unable to send verification email. Please try again.",
@@ -169,6 +160,8 @@ export const resend_otp_service = async (email, purpose) => {
 
   return {
     message: "Otp sent to your Email address",
+    email: user.email,
+    expiresIn: otpTTL,
   };
 };
 
@@ -208,16 +201,25 @@ export const forgot_password_service = async ({ email }, purpose) => {
   const user = await User.findOne({ email });
 
   if (!user) {
-    throw new ApiError("User not found", 404);
+    return {
+      message: "If the account exist the otp will be sent to your email",
+    };
+  }
+
+  const key = await redis.get(`password_reset_otp:${email}`);
+
+  if (key) {
+    throw new ApiError("Plz wait until the countdown resets", 400);
   }
 
   const otp = generateOTP();
-  await redis.set(`${purpose}_otp:${email}`, otp, "EX", 300, "NX");
+  const otpTTL = 300;
+  await redis.set(`password_reset_otp:${email}`, otp, "EX", otpTTL, "NX");
 
   try {
     await sendVerificationEmail(email, otp);
   } catch (err) {
-    await redis.del(`${purpose}_otp:${email}`);
+    await redis.del(`password_reset_otp:${email}`);
 
     throw new ApiError(
       "Unable to send verification email. Please try again.",
@@ -225,7 +227,18 @@ export const forgot_password_service = async ({ email }, purpose) => {
     );
   }
 
-  return { email: user.email };
+  return {
+    email: user.email,
+    message: "Reset password OTP sent to your email address",
+    expiresIn: otpTTL,
+  };
 };
 
+
+
+
+// POST /api/v1/auth/password-reset/otp/request
+// OTP resend karna	POST /api/v1/auth/password-reset/otp/resend
+// OTP verify karna	POST /api/v1/auth/password-reset/otp/verify
+// Naya password set karna	POST /api/v1/auth/password-reset
 
