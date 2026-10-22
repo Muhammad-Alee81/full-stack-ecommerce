@@ -10,6 +10,7 @@ import {
   hashToken,
   verifyRefreshToken,
 } from "../../utils/tokens.utils.js";
+import crypto from "node:crypto";
 
 export const signup_service = async (data) => {
   const { name, email, password } = data;
@@ -234,11 +235,57 @@ export const forgot_password_service = async ({ email }, purpose) => {
   };
 };
 
+export const verify_pass_reset_OTP_service = async ({ otp, email }) => {
+  if (!email || !otp) {
+    throw new ApiError("Plz provide information", 400);
+  }
 
+  const user = await User.findOne({
+    email,
+  });
 
+  if (!user) {
+    throw new ApiError("Invalid or expired OTP", 400);
+  }
+
+  const otpKey = `password_reset_otp:${email}`;
+
+  const savedOtp = await redis.get(otpKey);
+  if (!savedOtp) {
+    throw new ApiError("OTP invalid or expired", 400);
+  }
+
+  if (savedOtp !== String(otp)) {
+    throw new ApiError("Invalid OTP", 400);
+  }
+
+  const resetToken = crypto.randomBytes(32).toString("hex");
+
+  const tokenHash = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  const resetTokenKey = `password_reset_token:${user._id}`;
+
+  const result = await redis.set(resetTokenKey, tokenHash, "EX", 600, "NX");
+
+  if (result !== "OK") {
+    throw new ApiError(
+      "Unable to generate reset token . plz try again later",
+      500,
+    );
+  }
+
+  await redis.del(otpKey);
+
+  return {
+    message: "otp verified successfully",
+    resetToken,
+  };
+};
 
 // POST /api/v1/auth/password-reset/otp/request
-// OTP resend karna	POST /api/v1/auth/password-reset/otp/resend
 // OTP verify karna	POST /api/v1/auth/password-reset/otp/verify
+// OTP resend karna	POST /api/v1/auth/password-reset/otp/resend
 // Naya password set karna	POST /api/v1/auth/password-reset
-

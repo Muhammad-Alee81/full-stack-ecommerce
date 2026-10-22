@@ -6,18 +6,18 @@ import {
   resetPassword,
   signup,
   verifyEmail,
+  verifyPasswordResetOTP,
 } from "./auth.controllers.js";
 import validate from "../../middlewares/validate.middleware.js";
 import {
-  forgotPasswordValidator,
+  emailValidator,
   loginValidator,
   userSchemaValidator,
 } from "../../validators/auth.validator.js";
 
 const router = express.Router();
 
-
-// Login / SignUp 
+// Login / SignUp
 
 router.post("/signup", validate(userSchemaValidator), signup);
 router.post("/email-verification/otp/verify", verifyEmail);
@@ -25,13 +25,17 @@ router.post("/email-verification/otp/resend", resendEmailVarificationOTP);
 router.post("/refresh-token", refreshToken);
 router.post("/login", validate(loginValidator), login);
 
-
-// Reset Password 
+// Reset Password
 
 router.post(
   "/password-reset/otp/request",
-  validate(forgotPasswordValidator),
+  validate(emailValidator),
   resetPassword,
+);
+
+router.post(
+  "/password-reset/otp/verify",
+  verifyPasswordResetOTP,
 );
 
 export default router;
