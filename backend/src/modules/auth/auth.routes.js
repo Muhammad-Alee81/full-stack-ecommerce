@@ -2,6 +2,7 @@ import express from "express";
 import {
   login,
   refreshToken,
+  requestResetPasswordOTP,
   resendEmailVarificationOTP,
   resetPassword,
   signup,
@@ -30,12 +31,11 @@ router.post("/login", validate(loginValidator), login);
 router.post(
   "/password-reset/otp/request",
   validate(emailValidator),
-  resetPassword,
+  requestResetPasswordOTP,
 );
 
-router.post(
-  "/password-reset/otp/verify",
-  verifyPasswordResetOTP,
-);
+router.post("/password-reset/otp/verify", verifyPasswordResetOTP);
+
+
 
 export default router;

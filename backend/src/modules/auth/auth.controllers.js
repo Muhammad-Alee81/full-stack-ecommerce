@@ -63,7 +63,7 @@ export const login = catchAsync(async (req, res, next) => {
   return res.status(200).json({ status: "success", message, data });
 });
 
-export const resetPassword = catchAsync(async (req, res, next) => {
+export const requestResetPasswordOTP = catchAsync(async (req, res, next) => {
   const { email, message, expiresIn } = await forgot_password_service(req.body);
 
   return res.status(200).json({ status: "success", message, email, expiresIn });
@@ -83,4 +83,4 @@ export const verifyPasswordResetOTP = catchAsync(async (req, res, next) => {
   return res.status(200).json({ status: "success", message });
 });
 
-// sab sy pehly ma ye reset passwor varify ka function complete karoon ga us k baad ma validators ka proper structure karoon ga
+

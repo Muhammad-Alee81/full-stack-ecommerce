@@ -289,3 +289,4 @@ export const verify_pass_reset_OTP_service = async ({ otp, email }) => {
 // OTP verify karna	POST /api/v1/auth/password-reset/otp/verify
 // OTP resend karna	POST /api/v1/auth/password-reset/otp/resend
 // Naya password set karna	POST /api/v1/auth/password-reset
+
