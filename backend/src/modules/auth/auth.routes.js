@@ -13,6 +13,7 @@ import validate from "../../middlewares/validate.middleware.js";
 import {
   emailValidator,
   loginValidator,
+  resetPasswordValidator,
   userSchemaValidator,
 } from "../../validators/auth.validator.js";
 
@@ -35,7 +36,6 @@ router.post(
 );
 
 router.post("/password-reset/otp/verify", verifyPasswordResetOTP);
-
-
+router.post("/password-reset", validate(resetPasswordValidator), resetPassword);
 
 export default router;

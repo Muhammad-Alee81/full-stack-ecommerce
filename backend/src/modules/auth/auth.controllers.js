@@ -7,6 +7,7 @@ import {
   login_service,
   refresh_token_service,
   resend_email_verification_otp_service,
+  reset_pass_service,
   signup_service,
   verify_pass_reset_OTP_service,
 } from "./auth.services.js";
@@ -83,4 +84,25 @@ export const verifyPasswordResetOTP = catchAsync(async (req, res, next) => {
   return res.status(200).json({ status: "success", message });
 });
 
+export const resetPassword = catchAsync(async (req, res, next) => {
+  const { newPassword, confirmNewPassword } = req.body;
 
+  const { message } = await reset_pass_service({
+    newPassword,
+    confirmNewPassword,
+    resetToken: req.cookies["resetToken"],
+  });
+
+  res.clearCookie("resetToken", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 10 * 60 * 1000,
+    path: "/api/v1/auth/password-reset",
+  });
+
+  return res.status(200).json({
+    status: "success",
+    message,
+  });
+});

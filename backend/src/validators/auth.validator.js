@@ -20,3 +20,14 @@ export const loginValidator = userSchemaValidator.pick({
 export const emailValidator = userSchemaValidator.pick({
   email: true,
 });
+
+export const resetPasswordValidator = z
+  .object({
+    newPassword: z.string().min(8, "Password must be at least 8 characters"),
+
+    confirmNewPassword: z.string().min(8, "Confirm password is required"),
+  })
+  .refine((data) => data.newPassword === data.confirmNewPassword, {
+    message: "Passwords do not match",
+    path: ["confirmNewPassword"],
+  });
