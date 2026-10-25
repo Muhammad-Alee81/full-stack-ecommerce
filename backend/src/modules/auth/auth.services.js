@@ -290,14 +290,6 @@ export const reset_pass_service = async ({
   newPassword,
   confirmNewPassword,
 }) => {
-  if (!resetToken || !newPassword || !confirmNewPassword) {
-    throw new ApiError("All fields are required", 400);
-  }
-
-  if (newPassword !== confirmNewPassword) {
-    throw new ApiError("Passwords do not match", 400);
-  }
-
   const tokenHash = crypto
     .createHash("sha256")
     .update(resetToken)
@@ -325,7 +317,7 @@ export const reset_pass_service = async ({
     message: "Password changed successfully",
   };
 };
-
+ 
 // POST /api/v1/auth/password-reset/otp/request
 // OTP verify karna	POST /api/v1/auth/password-reset/otp/verify
 // OTP resend karna	POST /api/v1/auth/password-reset/otp/resend
