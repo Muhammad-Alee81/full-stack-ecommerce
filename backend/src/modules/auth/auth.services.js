@@ -1,13 +1,10 @@
 import { redis } from "../../config/redis.connection.js";
 import { User } from "../../models/user.model.js";
 import ApiError from "../../utils/api.error.js";
-import { catchAsync } from "../../utils/catch_async.utils.js";
 import { sendVerificationEmail } from "../../utils/email/email.utils.js";
 import generateOTP from "../../utils/generate.otp.js";
 import {
-  generateAccessToken,
-  generateRefreshToken,
-  hashToken,
+  generateAccessAndRefreshToken,
   verifyRefreshToken,
 } from "../../utils/tokens.utils.js";
 import crypto from "node:crypto";
@@ -81,14 +78,11 @@ export const email_verification_service = async (data) => {
     throw new ApiError("Email already verified", 400);
   }
 
-  const accessToken = generateAccessToken(user);
-  const refreshToken = generateRefreshToken(user);
+  const { accessToken, refreshToken } =
+    await generateAccessAndRefreshToken(user);
 
-  const hashedRefreshToken = hashToken(refreshToken);
-
-  user.refreshToken = hashedRefreshToken;
   user.isVerified = true;
-  await user.save();
+  await user.save({ validateBeforeSave: false });
   await redis.del(`email_verification_otp:${email}`);
 
   return {
@@ -113,12 +107,10 @@ export const refresh_token_service = async (token) => {
     return next(new ApiError("Invalid or expired refresh token", 401));
   }
 
-  const accessToken = generateAccessToken(user);
-  const refreshToken = generateRefreshToken(user);
+  const { accessToken, refreshToken } =
+    await generateAccessAndRefreshToken(user);
 
-  const hashedRefreshToken = hashToken(refreshToken);
-  user.refreshToken = hashedRefreshToken;
-  await user.save();
+  await user.save({ validateBeforeSave: false });
 
   return {
     accessToken,
@@ -139,13 +131,10 @@ export const login_service = async ({ email, password }) => {
     throw new ApiError("Invalid email or password", 401);
   }
 
-  const accessToken = generateAccessToken(user);
-  const refreshToken = generateRefreshToken(user);
+  const { accessToken, refreshToken } =
+    await generateAccessAndRefreshToken(user);
 
-  const hashedRefreshToken = hashToken(refreshToken);
-
-  user.refreshToken = hashedRefreshToken;
-  await user.save();
+  await user.save({ validateBeforeSave: false });
 
   return {
     accessToken,

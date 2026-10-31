@@ -41,3 +41,17 @@ export const verifyRefreshToken = async (token) => {
 
   return { user, hashRefreshToken };
 };
+
+export const generateAccessAndRefreshToken = async (user) => {
+  const accessToken = generateAccessToken(user);
+  const refreshToken = generateRefreshToken(user);
+
+  const hashedToken = hashToken(refreshToken);
+
+  user.refreshToken = hashedToken;
+
+  return {
+    accessToken,
+    refreshToken,
+  };
+};

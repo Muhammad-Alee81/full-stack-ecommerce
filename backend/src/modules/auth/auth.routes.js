@@ -1,6 +1,7 @@
 import express from "express";
 import {
   login,
+  logout,
   refreshToken,
   requestResetPasswordOTP,
   resendEmailVarificationOTP,
@@ -17,6 +18,7 @@ import {
   resetPasswordValidator,
   userSchemaValidator,
 } from "../../validators/auth.validator.js";
+import { checkAuth } from "../../middlewares/check.auth.middleware.js";
 
 const router = express.Router();
 
@@ -39,5 +41,7 @@ router.post(
 router.post("/password-reset/otp/verify", verifyPasswordResetOTP);
 router.post("/password-reset/otp/resend", resendPassResetOTP);
 router.post("/password-reset", validate(resetPasswordValidator), resetPassword);
+
+router.post("/logout", checkAuth, logout);
 
 export default router;

@@ -1,6 +1,6 @@
 import ApiError from "../../utils/api.error.js";
 import { catchAsync } from "../../utils/catch_async.utils.js";
-import { setAuthCookies } from "../../utils/cookie.utils.js";
+import { cookieOption, setAuthCookies } from "../../utils/cookie.utils.js";
 import {
   email_verification_service,
   forgot_password_service,
@@ -113,6 +113,19 @@ export const resendPassResetOTP = catchAsync(async (req, res, next) => {
     await resend_pass_verification_otp_service(req.body);
 
   return res.status(200).json({ status: "success", message, email, expiresIn });
+});
+
+export const logout = catchAsync(async (req, res, next) => {
+  const user = req.user;
+  user.refreshToken = undefined;
+  await user.save({ validateBeforeSave: false });
+
+  res.clearCookie("accessToken", cookieOption);
+  res.clearCookie("refreshToken", cookieOption);
+
+  return res
+    .status(200)
+    .json({ status: "success", message: "logout successfully" });
 });
 
 // SELECT
