@@ -1,0 +1,31 @@
+Tumhare current code mein race condition kahan hai?
+Ye tumhara current flow hai:
+
+1. Redis se OTP read karna (GET).
+2. OTP compare karna.
+3. Reset token generate karna.
+4. Reset token Redis mein save karna (SET NX).
+5. OTP delete karna (DEL).
+   Problem step 1 aur step 5 ke darmiyan hai.
+
+otp verfication ma race conditon ye h k agr user ek sath 2 request bhaigh dy tou 2 reset token genrate hoo sakty hain issi liye lua script ka use kia jaye ga taa k ek waqt ma sirf ek he request proceed hoo
+
+Tumhare case mein:
+
+1. User same OTP ke saath simultaneously 2 requests send karta hai.
+2. Dono requests Redis se OTP read kar sakti hain.
+3. Dono OTP match kar leti hain.
+4. Dono different reset tokens generate kar sakti hain.
+5. Is tarah ek OTP se 2 valid reset tokens create ho sakte hain.
+   Lua Script use karne ka purpose:
+
+OTP verification, reset token creation aur OTP deletion ko ek atomic operation banana.
+
+Iska result:
+
+- Request A execute hogi aur successful hogi.
+- Request B ko OTP nahi milega, kyun ke Request A usay delete kar chuki hogi.
+- Sirf ek reset token generate hoga.
+  Ek important clarification: Redis Lua script ke execute hone ke dauran doosri Redis command interleave nahi kar sakti. Iska matlab ye nahi ke sirf ek HTTP request server par execute hogi, balkay Redis ke andar critical operations atomic hongi.
+
+Tumhara understanding correct hai!

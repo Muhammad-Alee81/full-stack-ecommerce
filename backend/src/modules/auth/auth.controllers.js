@@ -7,6 +7,7 @@ import {
   login_service,
   refresh_token_service,
   resend_email_verification_otp_service,
+  resend_pass_verification_otp_service,
   reset_pass_service,
   signup_service,
   verify_pass_reset_OTP_service,
@@ -106,3 +107,15 @@ export const resetPassword = catchAsync(async (req, res, next) => {
     message,
   });
 });
+
+export const resendPassResetOTP = catchAsync(async (req, res, next) => {
+  const { email, message, expiresIn } =
+    await resend_pass_verification_otp_service(req.body);
+
+  return res.status(200).json({ status: "success", message, email, expiresIn });
+});
+
+// SELECT
+// WHERE
+// ORDER BY
+// OPERATORS

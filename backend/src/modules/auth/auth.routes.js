@@ -4,6 +4,7 @@ import {
   refreshToken,
   requestResetPasswordOTP,
   resendEmailVarificationOTP,
+  resendPassResetOTP,
   resetPassword,
   signup,
   verifyEmail,
@@ -36,6 +37,7 @@ router.post(
 );
 
 router.post("/password-reset/otp/verify", verifyPasswordResetOTP);
+router.post("/password-reset/otp/resend", resendPassResetOTP);
 router.post("/password-reset", validate(resetPasswordValidator), resetPassword);
 
 export default router;

@@ -98,6 +98,14 @@ export const email_verification_service = async (data) => {
   };
 };
 
+export const resend_email_verification_otp_service = async ({ email }) => {
+  return resend_otp_service({
+    email,
+    otpKey: `email_verification_otp:${email}`,
+    message: "OTP sent to your email address",
+  });
+};
+
 export const refresh_token_service = async (token) => {
   const { user, hashRefreshToken } = await verifyRefreshToken(token);
 
@@ -115,54 +123,6 @@ export const refresh_token_service = async (token) => {
   return {
     accessToken,
     refreshToken,
-  };
-};
-
-export const resend_email_verification_otp_service = async ({ email }) => {
-  const user = await User.findOne({ email });
-
-  if (!user) {
-    return {
-      message: "If the account exist the otp will be sent to your email",
-    };
-  }
-
-  const key = await redis.get(`email_verification_otp:${email}`);
-
-  if (key) {
-    throw new ApiError("Plz wait until the countdown resets", 400);
-  }
-
-  const otp = generateOTP();
-  const otpTTL = 300;
-
-  const result = await redis.set(
-    `email_verification_otp:${email}`,
-    otp,
-    "EX",
-    otpTTL,
-    "NX",
-  );
-
-  if (result !== "OK") {
-    throw new ApiError("Please wait until the countdown resets", 400);
-  }
-
-  try {
-    await sendVerificationEmail(email, otp);
-  } catch (err) {
-    await redis.del(`email_verification_otp:${email}`);
-
-    throw new ApiError(
-      "Unable to send verification email. Please try again.",
-      500,
-    );
-  }
-
-  return {
-    message: "Otp sent to your Email address",
-    email: user.email,
-    expiresIn: otpTTL,
   };
 };
 
@@ -290,6 +250,9 @@ export const reset_pass_service = async ({
   newPassword,
   confirmNewPassword,
 }) => {
+  if (!resetToken) {
+    throw new ApiError("Invalid or expired reset token", 401);
+  }
   const tokenHash = crypto
     .createHash("sha256")
     .update(resetToken)
@@ -311,14 +274,55 @@ export const reset_pass_service = async ({
   user.password = newPassword;
   await user.save();
 
-  await redis.del(resetTokenKey);
-
   return {
     message: "Password changed successfully",
   };
 };
- 
-// POST /api/v1/auth/password-reset/otp/request
-// OTP verify karna	POST /api/v1/auth/password-reset/otp/verify
-// OTP resend karna	POST /api/v1/auth/password-reset/otp/resend
-// Naya password set karna	POST /api/v1/auth/password-reset
+
+export const resend_pass_verification_otp_service = async ({ email }) => {
+  return resend_otp_service({
+    email,
+    otpKey: `password_reset_otp:${email}`,
+    message: "Reset password OTP sent to your email address",
+  });
+};
+
+// ----------------------------------------------
+// REUSABLE CODE HERE
+// -------------------------------------
+// 01 )  // REUSABLE PASSWORD RESEND OTP SERVICE
+
+export const resend_otp_service = async ({ email, otpKey, message }) => {
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    return {
+      message: "If an account exists, an OTP will be sent.",
+    };
+  }
+
+  const otp = generateOTP();
+  const otpTTL = 300;
+
+  const result = await redis.set(otpKey, otp, "EX", otpTTL, "NX");
+
+  if (result !== "OK") {
+    throw new ApiError("Please wait until the current OTP expires", 400);
+  }
+
+  try {
+    await sendVerificationEmail(email, otp);
+  } catch (err) {
+    // Don't delete the key here. I will delete the key by using Lua script
+    throw new ApiError(
+      "Unable to send verification email. Please try again.",
+      500,
+    );
+  }
+
+  return {
+    email: user.email,
+    message,
+    expiresIn: otpTTL,
+  };
+};
