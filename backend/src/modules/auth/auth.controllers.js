@@ -128,7 +128,8 @@ export const logout = catchAsync(async (req, res, next) => {
     .json({ status: "success", message: "logout successfully" });
 });
 
-// SELECT
-// WHERE
-// ORDER BY
-// OPERATORS
+
+
+
+// Auth module complete hoo gaya h ab ma is k code koo resuable bnaoun ga us k baad zod validation proper implement karoon ga 
+// atomic operations perform karoon ga code koo industry style bnaoun ga 

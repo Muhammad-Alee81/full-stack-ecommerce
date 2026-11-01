@@ -9,9 +9,7 @@ import {
 } from "../../utils/tokens.utils.js";
 import crypto from "node:crypto";
 
-export const signup_service = async (data) => {
-  const { name, email, password } = data;
-
+export const signup_service = async ({ name, email, password }) => {
   const checkUser = await User.findOne({ email });
 
   if (checkUser) {
@@ -41,7 +39,6 @@ export const signup_service = async (data) => {
     await sendVerificationEmail(email, otp);
   } catch (err) {
     await redis.del(`email_verification_otp:${email}`);
-
     throw new ApiError(
       "Unable to send verification email. Please try again.",
       500,
