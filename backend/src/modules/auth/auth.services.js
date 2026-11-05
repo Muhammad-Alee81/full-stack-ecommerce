@@ -10,35 +10,53 @@ import {
 import crypto from "node:crypto";
 
 export const signup_service = async ({ name, email, password }) => {
-  const checkUser = await User.findOne({ email });
+  let user = await User.findOne({ email });
+  const redisKey = `email_verification_otp:${email}`;
 
-  if (checkUser) {
+  if (user?.isVerified) {
     throw new ApiError("User already exists with this email address", 400);
   }
-
-  const user = await User.create({ name, email, password });
 
   const otp = generateOTP();
   const otpTTL = 300;
 
-  const result = await redis.set(
-    `email_verification_otp:${email}`,
-    otp,
-    "EX",
-    otpTTL,
-    "NX",
-  );
+  const result = await redis.set(redisKey, otp, "EX", otpTTL, "NX");
 
   if (result !== "OK") {
     throw new ApiError(
-      "Unable to generate verification OTP. Please try again.",
-      500,
+      "Verification OTP already exists or could not be generated. Please try again after 5 minutes.",
+      409,
     );
   }
+
+  if (!user) {
+    user = await User.create({
+      name,
+      email,
+      password,
+    });
+  } else {
+    user.name = name;
+    user.password = password;
+    await user.save();
+  }
+
   try {
     await sendVerificationEmail(email, otp);
   } catch (err) {
-    await redis.del(`email_verification_otp:${email}`);
+    try {
+      const cleanupScript = `
+        if redis.call("GET", KEYS[1]) == ARGV[1] then
+          return redis.call("DEL", KEYS[1])
+        end
+        return 0
+      `;
+
+      await redis.eval(cleanupScript, 1, redisKey, otp);
+    } catch (cleanUpError) {
+      // logger error here
+    }
+
     throw new ApiError(
       "Unable to send verification email. Please try again.",
       500,
@@ -312,3 +330,14 @@ export const resend_otp_service = async ({ email, otpKey, message }) => {
     expiresIn: otpTTL,
   };
 };
+
+// 1. Find user
+// 2. Verified user check
+// 3. Generate OTP
+// 4. Redis SET NX EX
+// 5. If result !== OK → throw error
+// 6. MongoDB create/update
+// 7. If MongoDB fails → conditional Lua cleanup
+// 8. Send email
+// 9. If email fails → conditional Lua cleanup
+// 10. Return success

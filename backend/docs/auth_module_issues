@@ -1,0 +1,13 @@
+Suppose:
+1. MongoDB mein user successfully create ho gaya.
+2. Redis temporarily down ho gaya.
+3. redis.set() error throw kar gaya.
+
+
+Ab kya hoga?
+- MongoDB mein user exist karega.
+- Redis mein OTP nahi hoga.
+- User dobara signup karega.
+- User.findOne() usay already existing user bata dega.
+Problem
+ User signup complete nahi kar sakta aur verification OTP bhi nahi mil sakta.
