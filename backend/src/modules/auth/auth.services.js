@@ -1,4 +1,6 @@
+import mongoose from "mongoose";
 import { redis } from "../../config/redis.connection.js";
+import { OutboxEvent } from "../../models/outbox-event.model.js";
 import { User } from "../../models/user.model.js";
 import ApiError from "../../utils/api.error.js";
 import { sendVerificationEmail } from "../../utils/email/email.utils.js";
@@ -8,67 +10,120 @@ import {
   verifyRefreshToken,
 } from "../../utils/tokens.utils.js";
 import crypto from "node:crypto";
+import { userRegistrationQueue } from "../../queues/user-registration.queue.js";
 
 export const signup_service = async ({ name, email, password }) => {
-  let user = await User.findOne({ email });
-  const redisKey = `email_verification_otp:${email}`;
-
-  if (user?.isVerified) {
-    throw new ApiError("User already exists with this email address", 400);
-  }
-
-  const otp = generateOTP();
-  const otpTTL = 300;
-
-  const result = await redis.set(redisKey, otp, "EX", otpTTL, "NX");
-
-  if (result !== "OK") {
-    throw new ApiError(
-      "Verification OTP already exists or could not be generated. Please try again after 5 minutes.",
-      409,
-    );
-  }
-
-  if (!user) {
-    user = await User.create({
-      name,
-      email,
-      password,
-    });
-  } else {
-    user.name = name;
-    user.password = password;
-    await user.save();
-  }
+  const session = await mongoose.startSession();
 
   try {
-    await sendVerificationEmail(email, otp);
-  } catch (err) {
-    try {
-      const cleanupScript = `
-        if redis.call("GET", KEYS[1]) == ARGV[1] then
-          return redis.call("DEL", KEYS[1])
-        end
-        return 0
-      `;
-
-      await redis.eval(cleanupScript, 1, redisKey, otp);
-    } catch (cleanUpError) {
-      // logger error here
-    }
-
-    throw new ApiError(
-      "Unable to send verification email. Please try again.",
-      500,
+    session.startTransaction();
+    // 1. Create User
+    const [user] = await User.create(
+      [
+        {
+          name,
+          email,
+          password,
+        },
+      ],
+      { session },
     );
-  }
 
-  return {
-    email: user.email,
-    expiresIn: otpTTL,
-    message: "Verification OTP sent tou your email",
-  };
+    // 2. Create Outbox Event
+    const [outboxEvent] = await OutboxEvent.create(
+      [
+        {
+          aggregateType: "User",
+          aggregateId: user._id,
+          eventType: "USER_REGISTERED",
+          payload: {
+            name: user.name,
+            email: user.email,
+          },
+        },
+      ],
+      { session },
+    );
+
+    userRegistrationQueue.add("send-email", { email });
+
+    // 3. Commit Transaction
+    await session.commitTransaction();
+
+    return {
+      user,
+      outboxEvent,
+    };
+  } catch (err) {
+    // 4. Rollback Transaction
+    await session.abortTransaction();
+
+    throw err;
+  } finally {
+    // 5. End Session
+    await session.endSession();
+  }
 };
+// export const signup_service = async ({ name, email, password }) => {
+//   let user = await User.findOne({ email });
+//   const redisKey = `email_verification_otp:${email}`;
+
+//   if (user?.isVerified) {
+//     throw new ApiError("User already exists with this email address", 400);
+//   }
+
+//   const otp = generateOTP();
+//   const otpTTL = 300;
+
+//   const result = await redis.set(redisKey, otp, "EX", otpTTL, "NX");
+
+//   if (result !== "OK") {
+//     throw new ApiError(
+//       "Verification OTP already exists or could not be generated. Please try again after 5 minutes.",
+//       409,
+//     );
+//   }
+
+//   if (!user) {
+//     user = await User.create({
+//       name,
+//       email,
+//       password,
+//     });
+//   } else {
+//     user.name = name;
+//     user.password = password;
+//     await user.save();
+//   }
+
+//   try {
+//     await sendVerificationEmail(email, otp);
+//   } catch (err) {
+//     try {
+//       const cleanupScript = `
+//         if redis.call("GET", KEYS[1]) == ARGV[1] then
+//           return redis.call("DEL", KEYS[1])
+//         end
+//         return 0
+//       `;
+
+//       await redis.eval(cleanupScript, 1, redisKey, otp);
+//     } catch (cleanUpError) {
+//       // logger error here
+//     }
+
+//     throw new ApiError(
+//       "Unable to send verification email. Please try again.",
+//       500,
+//     );
+//   }
+
+//   return {
+//     email: user.email,
+//     expiresIn: otpTTL,
+//     message: "Verification OTP sent tou your email",
+//   };
+// };
 
 export const email_verification_service = async (data) => {
   const { otp, email } = data;

@@ -14,15 +14,16 @@ import {
 } from "./auth.services.js";
 
 export const signup = catchAsync(async (req, res, next) => {
-  const { email, expiresIn, message } = await signup_service(req.body);
+  const { user, outboxEvent } = await signup_service(req.body);
 
   return res.status(200).json({
     status: "success",
-    message,
-    email,
-    expiresIn,
+    user,
+    outboxEvent,
   });
 });
+
+// ------------------------------------------------------------------------------
 
 export const verifyEmail = catchAsync(async (req, res, next) => {
   const { accessToken, message, refreshToken } =
@@ -128,8 +129,5 @@ export const logout = catchAsync(async (req, res, next) => {
     .json({ status: "success", message: "logout successfully" });
 });
 
-
-
-
-// Auth module complete hoo gaya h ab ma is k code koo resuable bnaoun ga us k baad zod validation proper implement karoon ga 
-// atomic operations perform karoon ga code koo industry style bnaoun ga 
+// Auth module complete hoo gaya h ab ma is k code koo resuable bnaoun ga us k baad zod validation proper implement karoon ga
+// atomic operations perform karoon ga code koo industry style bnaoun ga
